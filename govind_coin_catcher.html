@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Govind's Super Coin Catcher</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom right, #e0c3fc, #8ec5fc);
+      overflow: hidden;
+    }
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #player {
+      position: absolute;
+      bottom: 10%;
+      width: 60px;
+      height: 20px;
+      background: #ffd700;
+      border-radius: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      line-height: 20px;
+      font-size: 20px;
+    }
+    .coin, .bomb {
+      position: absolute;
+      top: 0;
+      width: 40px;
+      height: 40px;
+      font-size: 30px;
+      text-align: center;
+      line-height: 40px;
+      animation: fall linear;
+    }
+    .coin {
+      color: gold;
+    }
+    .bomb {
+      color: red;
+    }
+    @keyframes fall {
+      to {
+        transform: translateY(100vh);
+      }
+    }
+    #scoreBoard {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #fff;
+      font-size: 22px;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 16px;
+      border-radius: 10px;
+    }
+    #startScreen, #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #1e1e1e 0%, #121212 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      padding: 20px;
+    }
+    #startScreen h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    #startScreen p {
+      font-size: 18px;
+      margin: 4px 0;
+    }
+    #startBtn, #restartBtn {
+      padding: 15px 30px;
+      font-size: 20px;
+      margin-top: 25px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(45deg, #00c6ff, #0072ff);
+      color: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    #qrImage {
+      width: 150px;
+      margin-top: 20px;
+    }
+    #donateMsg {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #ffeb3b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <audio id="bgMusic" src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" loop autoplay></audio>
+  <audio id="coinSound" src="https://www.soundjay.com/buttons/sounds/button-09.mp3"></audio>
+  <audio id="bombSound" src="https://www.soundjay.com/button/beep-10.mp3"></audio>
+
+  <div id="gameContainer">
+    <div id="scoreBoard">Score: 0</div>
+    <div id="player">🙂</div>
+
+    <div id="startScreen">
+      <h1>🎮 Govind's Super Coin Catcher 🪙</h1>
+      <p>Move the paddle to catch coins 🪙</p>
+      <p>💣 Avoid bombs!</p>
+      <p>Speed increases the longer you survive.</p>
+      <button id="startBtn" onclick="startGame()">Start Game</button>
+    </div>
+
+    <div id="gameOverScreen" style="display:none">
+      <h1>Game Over!</h1>
+      <p>Your Score: <span id="finalScore"></span></p>
+      <img id="qrImage" src="/mnt/data/1000035181.jpg" alt="Donate QR" />
+      <div id="donateMsg">Liked the game?<br>Support Govind's mobile dream! 🙏<br>Donate ₹50–₹100 to<br><strong>9335441909@fam</strong></div>
+      <button id="restartBtn" onclick="restartGame()">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const player = document.getElementById("player");
+    const gameContainer = document.getElementById("gameContainer");
+    const scoreBoard = document.getElementById("scoreBoard");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const startScreen = document.getElementById("startScreen");
+    const finalScore = document.getElementById("finalScore");
+    const coinSound = document.getElementById("coinSound");
+    const bombSound = document.getElementById("bombSound");
+
+    let playerX = window.innerWidth / 2 - 30;
+    let score = 0;
+    let dropInterval;
+    let speedIncreaseInterval;
+    let dropSpeed = 2;
+    let active = false;
+
+    function startGame() {
+      startScreen.style.display = "none";
+      score = 0;
+      dropSpeed = 2;
+      active = true;
+      scoreBoard.textContent = "Score: 0";
+      player.style.left = playerX + "px";
+      dropInterval = setInterval(dropItem, 800);
+      speedIncreaseInterval = setInterval(() => {
+        if (dropSpeed < 10) dropSpeed += 0.2;
+      }, 2000);
+    }
+
+    function endGame() {
+      active = false;
+      clearInterval(dropInterval);
+      clearInterval(speedIncreaseInterval);
+      gameOverScreen.style.display = "flex";
+      finalScore.textContent = score;
+    }
+
+    function restartGame() {
+      document.querySelectorAll(".coin, .bomb").forEach(el => el.remove());
+      gameOverScreen.style.display = "none";
+      startGame();
+    }
+
+    function dropItem() {
+      if (!active) return;
+      const item = document.createElement("div");
+      const isBomb = Math.random() < 0.25;
+      item.className = isBomb ? "bomb" : "coin";
+      item.textContent = isBomb ? "💣" : "🪙";
+      item.style.left = Math.random() * (window.innerWidth - 40) + "px";
+      item.style.animationDuration = (3 - dropSpeed / 3) + 's';
+      gameContainer.appendChild(item);
+
+      let top = 0;
+      const fall = setInterval(() => {
+        if (!active) return clearInterval(fall);
+        top += dropSpeed;
+        item.style.top = top + "px";
+
+        const itemRect = item.getBoundingClientRect();
+        const playerRect = player.getBoundingClientRect();
+
+        if (
+          itemRect.bottom >= playerRect.top &&
+          itemRect.left < playerRect.right &&
+          itemRect.right > playerRect.left
+        ) {
+          clearInterval(fall);
+          item.remove();
+
+          if (isBomb) {
+            bombSound.play();
+            endGame();
+          } else {
+            coinSound.play();
+            score += 10;
+            scoreBoard.textContent = "Score: " + score;
+          }
+        } else if (top > window.innerHeight) {
+          clearInterval(fall);
+          item.remove();
+        }
+      }, 20);
+    }
+
+    let touchStartX = 0;
+    gameContainer.addEventListener("touchstart", e => {
+      touchStartX = e.touches[0].clientX;
+    });
+    gameContainer.addEventListener("touchmove", e => {
+      const deltaX = e.touches[0].clientX - touchStartX;
+      playerX += deltaX;
+      playerX = Math.max(0, Math.min(window.innerWidth - 60, playerX));
+      player.style.left = playerX + "px";
+      touchStartX = e.touches[0].clientX;
+    });
+  </script>
+</body>
+</html>
